@@ -1,0 +1,11 @@
+[project]
+name = "fetch-tencent-docs"
+version = "0.1.0"
+description = "Fetch Tencent Cloud docs as Markdown via Jina / Tavily"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "tavily-python>=0.7.26",
+    "tqdm>=4.68.4",
+]
