@@ -10,12 +10,17 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from threading import Lock
+from zoneinfo import ZoneInfo
 
 from tqdm import tqdm
 
 from fetchers import Fetcher, create_fetcher
+
+# East Asia / China Standard Time (UTC+8)
+TZ_CN = ZoneInfo("Asia/Shanghai")
 
 
 def load_dotenv(path: Path) -> None:
@@ -70,9 +75,11 @@ def _fetch_one(
 ) -> JobResult:
     try:
         content = fetcher.fetch(job.url)
+        fetched_at = datetime.now(TZ_CN).isoformat(timespec="seconds")
         header = (
             f"<!-- source: {job.url} -->\n"
-            f"<!-- fetcher: {fetcher.name} -->\n\n"
+            f"<!-- fetcher: {fetcher.name} -->\n"
+            f"<!-- fetched_at: {fetched_at} -->\n\n"
         )
         with write_lock:
             job.out_path.parent.mkdir(parents=True, exist_ok=True)

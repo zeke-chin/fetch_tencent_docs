@@ -36,6 +36,14 @@ tavily_key=tvly-xxxxxxxx        # 使用 --backend tavily 时需要
 
 也支持 `JINA_API_KEY` / `TAVILY_API_KEY`。
 
+## 导出 urls.json（浏览器脚本）
+
+在腾讯云文档页用 Console 展开侧栏并导出链接列表：
+
+1. 打开产品文档，例如 <https://cloud.tencent.com/document/product/1814>
+2. F12 → Console，粘贴 [`scripts/export_tencent_docs_urls.js`](scripts/export_tencent_docs_urls.js) 全文并回车
+3. JSON 会复制到剪贴板，保存为 `datas/<product>/urls.json`
+
 ## 输入：urls.json
 
 JSON 对象，key 为文档标题路径，value 为 URL：
@@ -94,15 +102,21 @@ uv run main.py /Users/zeke/workspace/wm_work/fetch_tencent_docs/datas/sandbox/ur
 ```markdown
 <!-- source: https://cloud.tencent.com/document/product/1814/123809 -->
 <!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T16:30:00+08:00 -->
 
 # 页面正文 ...
 ```
+
+`fetched_at` 为抓取时刻，时区固定为东八区（`Asia/Shanghai`）。
 
 ## 项目结构
 
 ```
 fetch_tencent_docs/
 ├── main.py                 # CLI / 并发 / 落盘
+├── clean_md.py             # 清洗导航/页脚噪音
+├── scripts/
+│   └── export_tencent_docs_urls.js  # 浏览器 Console：导出 urls.json
 ├── fetchers/
 │   ├── __init__.py         # create_fetcher()
 │   ├── base.py             # Fetcher 抽象
