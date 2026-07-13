@@ -22,7 +22,12 @@
 uv sync
 ```
 
-在项目根目录配置 `.env`：
+在项目根目录配置密钥：
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入真实 key
+```
 
 ```env
 jina_key=jina_xxxxxxxx          # 可选；无 key 时走 Jina 免费额度
@@ -104,7 +109,8 @@ fetch_tencent_docs/
 │   ├── jina.py             # Jina Reader (httpx)
 │   └── tavily.py           # Tavily Extract (tavily-python SDK)
 ├── pyproject.toml
-├── .env                    # API Key（勿提交）
+├── .env.example            # 环境变量模板（可提交）
+├── .env                    # API Key（勿提交，从 .env.example 复制）
 ├── datas/
 │   └── sandbox/
 │       ├── urls.json
