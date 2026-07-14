@@ -1,0 +1,203 @@
+<!-- source: https://cloud.tencent.com/document/product/436/116675 -->
+<!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T17:51:20+08:00 -->
+
+# 查询 AI 内容识别服务
+
+最近更新时间：2025-08-22 15:29:11
+
+
+## 功能描述
+
+本接口用于查询已经开通 AI 内容识别（异步）服务的存储桶。
+
+## 授权说明
+
+通过子账号使用时，需要在 [授权策略](https://cloud.tencent.com/document/product/460/104297) 的 action 中添加 `ci:DescribeAiProcessBucket`权限。数据万象支持的所有操作接口请参见 [CI action](https://cloud.tencent.com/document/product/598/98114)。
+
+## 服务开通
+
+使用该功能需提前 [绑定存储桶](https://cloud.tencent.com/document/product/460/46483)，开通数据万象服务。
+
+**注意：**
+
+数据万象绑定后，如果您手动对存储桶进行数据万象的解绑操作，将无法继续使用该功能。
+
+## 使用限制
+
+使用该接口时，请先确认相关限制条件。详情请参见 [使用限制](https://cloud.tencent.com/document/product/460/36620#content-recognition)。
+
+## 请求
+
+#### 请求示例
+
+GET /ai_bucket HTTP/1.1
+
+Host: ci.<Region>.myqcloud.com
+
+Date: <GMT Date>
+
+Authorization: <Auth String>
+
+Content-Length: <length>
+
+Content-Type: application/xml
+
+**说明：**
+
+Authorization: Auth String，详情请参见 [请求签名](https://cloud.tencent.com/document/product/436/7778) 文档。
+
+#### 请求头
+
+此接口仅使用公共请求头部，详情请参见 [公共请求头部](https://cloud.tencent.com/document/product/460/42865) 文档。
+
+#### 请求体
+
+该请求的请求体为空。
+
+#### 请求参数
+
+名称 描述 类型 是否必填
+regions 地域信息，例如 ap-shanghai、ap-beijing，若查询多个地域以“,”分隔字符串，如未填写该字段，则以 Host 中的<Region>来响应，Region 详情请参见 [地域与域名](https://cloud.tencent.com/document/product/460/31066)String 否
+bucketNames 存储桶名称，以“,”分隔，支持多个存储桶，精确搜索 String 否
+bucketName 存储桶名称前缀，前缀搜索 String 否
+pageNumber 第几页，默认第1页 Integer 否
+pageSize 每页个数，大于0且小于等于100的整数，默认10 Integer 否
+
+## 响应
+
+#### 响应头
+
+此接口仅返回公共响应头部，详情请参见[公共响应头部](https://cloud.tencent.com/document/product/460/42866)文档。
+
+#### 响应体
+
+该响应体返回为 **application/xml** 数据，包含完整节点数据的内容展示如下：
+
+<Response>
+
+ <RequestId>NTk0MjdmODlfMjQ4OGY3XzYzYzhf****</RequestId>
+
+ <TotalCount>2</TotalCount>
+
+ <PageNumber>1</PageNumber>
+
+ <PageSize>10</PageSize>
+
+ <AiBucketList>
+
+ <BucketId>examplebucket-1250000000</BucketId>
+
+ <Name>examplebucket-1250000000</Name>
+
+ <Region>ap-beijing</Region>
+
+ <CreateTime>2019-11-15T12:12:12+0800</CreateTime>
+
+ </AiBucketList>
+
+ <AiBucketList>
+
+ <BucketId>examplebucket-1-1250000000</BucketId>
+
+ <Name>examplebucket-1-1250000000</Name>
+
+ <Region>ap-chongqing</Region>
+
+ <CreateTime>2020-11-16T14:13:15+0800</CreateTime>
+
+ </AiBucketList>
+
+</Response>
+
+具体的数据内容如下：
+
+节点名称（关键字）父节点 描述 类型
+Response 无 保存结果的容器 Container
+
+Container 节点 Response 的内容：
+
+节点名称（关键字）父节点 描述 类型
+RequestId Response 请求的唯一 ID String
+TotalCount Response 开通AI 内容识别（异步）的 Bucket 总数 Int
+PageNumber Response 当前页数，同请求中的 pageNumber Int
+PageSize Response 每页个数，同请求中的 pageSize Int
+AiBucketList Response AI 内容识别（异步） Bucket 详情 Container 数组
+
+Container 节点 AiBucketList 的内容：
+
+节点名称（关键字）父节点 描述 类型
+BucketId Response.AiBucketList 存储桶 ID String
+Name Response.AiBucketList 存储桶名称，同 BucketId String
+Region Response.AiBucketList 所在的地域 String
+CreateTime Response.AiBucketList 创建时间 String
+
+#### 错误码
+
+该请求无特有错误信息，常见的错误信息请参见 [错误码](https://cloud.tencent.com/document/product/460/42867) 文档。
+
+## 实际案例
+
+#### 请求
+
+GET /ai_bucket HTTP/1.1
+
+Authorization:q-sign-algorithm=sha1&q-ak=************************************&q-sign-time=1497530202;1497610202&q-key-time=1497530202;1497610202&q-header-list=&q-url-param-list=&q-signature=****************************************
+
+Host: ci.ap-beijing.myqcloud.com
+
+Content-Length: 0
+
+Content-Type: application/xml
+
+#### 响应
+
+HTTP/1.1 200 OK
+
+Content-Type: application/xml
+
+Content-Length: 100
+
+Connection: keep-alive
+
+Date: Thu, 15 Jun 2021 12:37:29 GMT
+
+Server: tencent-ci
+
+x-ci-request-id: NTk0MjdmODlfMjQ4OGY3XzYzYzhf****
+
+<Response>
+
+ <RequestId>NTk0MjdmODlfMjQ4OGY3XzYzYzhf****</RequestId>
+
+ <TotalCount>2</TotalCount>
+
+ <PageNumber>1</PageNumber>
+
+ <PageSize>10</PageSize>
+
+ <AiBucketList>
+
+ <BucketId>examplebucket-1250000000</BucketId>
+
+ <Name>examplebucket-1250000000</Name>
+
+ <Region>ap-beijing</Region>
+
+ <CreateTime>2019-11-15T12:12:12+0800</CreateTime>
+
+ </AiBucketList>
+
+ <AiBucketList>
+
+ <BucketId>examplebucket-1-1250000000</BucketId>
+
+ <Name>examplebucket-1-1250000000</Name>
+
+ <Region>ap-chongqing</Region>
+
+ <CreateTime>2020-11-16T14:13:15+0800</CreateTime>
+
+ </AiBucketList>
+
+</Response>

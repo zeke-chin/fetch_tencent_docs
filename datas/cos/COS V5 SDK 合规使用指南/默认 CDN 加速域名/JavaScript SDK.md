@@ -1,0 +1,1867 @@
+<!-- source: https://cloud.tencent.com/document/product/436/8095 -->
+<!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T22:32:01+08:00 -->
+
+Title: 对象存储 JavaScript SDK_腾讯云
+
+URL Source: https://cloud.tencent.com/document/product/436/8095
+
+Markdown Content:
+腾讯云
+大模型
+最新活动
+产品
+解决方案
+定价
+企业中心
+云市场
+开发者
+更多
+云服务器
+中国站
+文档
+备案
+控制台
+登录
+免费注册
+对象存储
+动态与公告
+产品简介
+购买指南
+快速入门
+操作指南
+工具指南
+实践教程
+数据湖存储
+向量存储与检索
+智能体存储
+数据处理
+功能体验
+故障处理
+API 文档
+SDK 文档
+常见问题
+相关协议
+附录
+历史版本
+历史版本地域列表
+默认 CDN 加速域名
+历史版本 API
+历史版本 SDK
+概览
+Android SDK
+C# SDK
+C++ SDK
+iOS SDK
+Java SDK
+JavaScript SDK
+PHP SDK
+Python SDK
+联系我们
+词汇表
+文档中心入门中心API 中心SDK 中心文档活动我的反馈
+文档反馈官招募中，报名立赚积分兑换代金券！> HOT
+文档中心>对象存储>附录>历史版本>历史版本 SDK>JavaScript SDK
+JavaScript SDK
+
+最近更新时间：2024-11-18 14:55:42
+
+我的收藏
+本页目录：
+开发准备
+SDK 获取
+开发环境
+SDK 配置
+初始化
+文件操作
+普通文件上传
+大文件分片上传
+删除文件
+获取文件属性
+更新文件属性
+拷贝文件
+移动文件
+文件夹（目录）操作
+新增文件夹
+删除文件夹
+获取文件夹属性
+更新文件夹属性
+获取文件夹内列表
+注意
+目前查阅的是历史版本 SDK 文档，后续不再更新和维护，我们建议您查阅新版 SDK 文档 。
+开发准备
+SDK 获取
+COS 服务的 JS SDK V4 版本的 GitHub 地址。
+开发环境
+1.
+使用 SDK 需要浏览器支持 HTML 5。
+2.
+请您登录 腾讯云控制台 获取您的项目 ID（APPID），bucket，secret_id 和 secret_key。
+3.
+请您登录 对象存储控制台 针对您要操作的 bucket 进行跨域（CORS）设置。
+说明
+本版本 SDK 基于 JSON API 封装组成。
+SDK 配置
+直接下载 github 上提供的源代码，使用 SDK 之前，加载 dist 目录里的 cos-js-sdk-v4.js 文件即可。
+<script type="text/javascript" src="cos-js-sdk-v4.js"></script>
+﻿
+
+初始化
+﻿
+
+    //初始化逻辑
+    //特别注意: JS-SDK 使用之前请先到 console.cloud.tencent.com/cos 对相应的 Bucket 进行跨域设置
+    var cos = new CosCloud({
+        appid: appid,// APPID 必填参数
+        bucket: bucket,//bucketName 必填参数
+        region: 'sh',//地域信息 必填参数 华南地区填 gz 华东填 sh 华北填 tj
+        getAppSign: function (callback) {//获取签名 必填参数
+﻿
+
+            //下面介绍获取签名的几种办法
+﻿
+
+            //1.搭建一个鉴权服务器，自己构造请求参数获取签名，推荐实际线上业务使用，优点是安全性好，不会暴露自己的私钥
+            //拿到签名之后记得调用 callback
+            /**
+             $.ajax('SIGN_URL').done(function (data) {
+                var sig = data.sign;
+                callback(sig);
+            });
+             **/
+﻿
+
+            //2.直接在浏览器前端计算签名，需要获取自己的 accessKey 和 secretKey, 一般在调试阶段使用
+            //拿到签名之后记得调用 callback
+            //var res = getAuth(); //这个函数自己根据签名算法实现
+            //callback(res);
+﻿
+
+﻿
+
+            //3.直接复用别人算好的签名字符串, 一般在调试阶段使用
+            //拿到签名之后记得调用 callback
+            //callback('YOUR_SIGN_STR')
+            //
+﻿
+
+        },
+        getAppSignOnce: function (callback) {//单次签名，必填参数，参考上面的注释即可
+            //填上获取单次签名的逻辑
+        }
+    });
+﻿
+
+﻿
+
+初始化参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+appid
+
+int
+
+是
+
+无
+
+APPID
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+region
+
+String
+
+是
+
+'gz'
+
+地域信息，必填参数，华南地区填 gz 华东填 sh 华北填tj
+
+
+getAppSign
+
+Function
+
+是
+
+无
+
+获取多次签名的函数，建议从服务器端获取签名字符串
+
+
+getAppSignOnce
+
+Function
+
+是
+
+无
+
+获取单次签名的函数，建议从服务器端获取签名字符串
+返回结果说明
+返回值：cos object 对象，初始化之后可以用这个 cos object 对象进行内置接口调用例如 uploadFile，deleteFile 等。
+文件操作
+普通文件上传
+接口说明：通常用于较小文件（一般小于20MB）的上传，可以通过此接口上传较小的文件并获得文件的 url，如果文件大于20M则本接口内部会去调用分片上传接口。
+方法原型
+﻿
+
+cos.uploadFile(successCallBack, errorCallBack, progressCallBack, bucket, path, file, insertOnly);
+﻿
+
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+上传成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+上传失败的回调
+
+
+progressCallBack
+
+Function
+
+是
+
+无
+
+上传过程进度的回调，例如文件1M已经上传了100K则会回调进度0.1
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+文件在 COS 服务端的路径
+
+
+file
+
+File
+
+是
+
+无
+
+本地要上传文件的文件对象（二进制数据）
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+提示信息
+
+
+data
+
+Object
+
+是
+
+返回数据
+
+
+data.access_url
+
+String
+
+是
+
+生成的文件 CDN 下载 url
+
+
+data.source_url
+
+String
+
+是
+
+生成的文件 COS 源站 url
+
+
+data.url
+
+String
+
+是
+
+操作文件的 url
+
+
+data.resource_path
+
+String
+
+是
+
+资源路径，格式：/appid/bucket/xxx
+示例
+﻿
+
+    var myFolder = '/111/';//需要操作的目录
+    var successCallBack = function (result) {
+        $("#result").val(JSON.stringify(result));
+    };
+﻿
+
+    var errorCallBack = function (result) {
+        result = result || {};
+        $("#result").val(result.responseText || 'error');
+    };
+﻿
+
+    var progressCallBack = function(curr){
+        $("#result").val('uploading... curr progress is '+curr);
+    };
+﻿
+
+    $('#js-file').off('change').on('change', function (e) {
+        var file = e.target.files[0];
+        cos.uploadFile(successCallBack, errorCallBack, progressCallBack, bucket, myFolder+file.name, file, 0);
+        return false;
+    });
+大文件分片上传
+接口说明：通常用于较大文件（一般大于20MB）的上传，可以通过此接口上传较大的文件并获得文件的 url。
+方法原型
+cos.sliceUploadFile(successCallBack, errorCallBack, progressCallBack, bucket, path, file, insertOnly);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+上传成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+上传失败的回调
+
+
+progressCallBack
+
+Function
+
+是
+
+无
+
+上传过程进度的回调，例如文件1M已经上传了100K则会回调进度0.1
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+文件在 COS 服务端的路径
+
+
+file
+
+File
+
+是
+
+无
+
+本地要上传文件的文件对象（二进制数据）
+返回结果说明(json字符串)
+需要注意的是大文件上传会经多个接口处理，以下是最后一片上传成功才会触发的回调。
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+提示信息
+
+
+data
+
+Object
+
+是
+
+返回数据
+
+
+data.access_url
+
+String
+
+是
+
+生成的文件 CDN 下载 url
+
+
+data.source_url
+
+String
+
+是
+
+生成的文件 COS 源站 url
+
+
+data.url
+
+String
+
+是
+
+操作文件的url
+
+
+data.resource_path
+
+String
+
+是
+
+资源路径. 格式:/appid/bucket/xxx
+示例
+﻿
+
+    var myFolder = '/111/';//需要操作的目录
+    var successCallBack = function (result) {
+        $("#result").val(JSON.stringify(result));
+    };
+﻿
+
+    var errorCallBack = function (result) {
+        result = result || {};
+        $("#result").val(result.responseText || 'error');
+    };
+﻿
+
+    var progressCallBack = function(curr){
+        $("#result").val('uploading... curr progress is '+curr);
+    };
+﻿
+
+    $('#js-file').off('change').on('change', function (e) {
+        var file = e.target.files[0];
+        //大文件也可以直接调用 uploadFile
+        cos.uploadFile(successCallBack, errorCallBack, progressCallBack, bucket, myFolder+file.name, file, 0);
+        //也可以用 sliceUploadFile，选一个即可
+        //cos.sliceUploadFile(successCallBack, errorCallBack, progressCallBack, bucket, myFolder+file.name, file, 0);
+        return false;
+    });
+﻿
+
+﻿
+
+删除文件
+接口说明：删除文件
+方法原型
+cos.deleteFile(successCallBack, errorCallBack, bucket, path);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+文件在 COS 服务端的路径
+返回结果说明(json字符串)
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+提示信息
+示例
+﻿
+
+    //删除文件
+    $('#deleteFile').on('click', function () {
+        var myFile = myFolder+'2.txt';//填您自己实际存在的文件
+        cos.deleteFile(successCallBack, errorCallBack, bucket, myFile);
+    });
+﻿
+
+获取文件属性
+接口说明：通过此接口查询文件的各项属性信息。
+方法原型
+cos.getFileStat(successCallBack, errorCallBack, bucket, path);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+文件在 COS 服务端的路径
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+
+
+data
+
+Object
+
+是
+
+文件属性数据
+
+
+data.name
+
+String
+
+是
+
+文件或目录名
+
+
+data.biz_attr
+
+String
+
+是
+
+文件属性，业务端维护
+
+
+data.ctime
+
+String
+
+是
+
+文件的创建时间，unix 时间戳
+
+
+data.mtime
+
+String
+
+是
+
+文件的修改时间，unix 时间戳
+
+
+data.filesize
+
+Int
+
+是
+
+文件大小
+
+
+data.filelen
+
+Int
+
+是
+
+文件已传输大小
+
+
+data.sha
+
+String
+
+是
+
+文件 sha
+
+
+data.access_url
+
+String
+
+是
+
+生成的文件下载 url
+
+
+data.authority
+
+String
+
+否
+
+eInvalid，eWRPrivate，eWPrivateRPublic，文件可以与 bucket 拥有不同的权限类型，已经设置过权限的文件如果想要撤销，直接赋值为eInvalid，则会采用 bucket 的权限
+
+
+data.custom_headers
+
+String
+
+否
+
+自定义 header 对象
+示例
+﻿
+
+    //获取文件属性
+    $('#getFileStat').on('click', function () {
+        var myFile = myFolder+'2.txt';//填您自己实际存在的文件
+        cos.getFileStat(successCallBack, errorCallBack, bucket, myFile);
+    });
+﻿
+
+更新文件属性
+接口说明：通过此接口更新文件的属性信息。
+方法原型
+cos.updateFile(successCallBack, errorCallBack, bucket, path, bizAttr);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+文件在 COS 服务端的路径
+
+
+bizAttr
+
+String
+
+是
+
+无
+
+文件的自定义属性
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+示例
+﻿
+
+    //更新文件属性
+    $('#updateFile').on('click', function () {
+        var myFile = myFolder+'2.txt';//填您自己实际存在的文件
+        cos.updateFile(successCallBack, errorCallBack, bucket, myFile, 'my new file attr');
+    });
+﻿
+
+拷贝文件
+接口说明：通过此接口把文件拷贝（即复制）到另一个路径。
+方法原型
+cos.copyFile(successCallBack, errorCallBack, bucket, path, destPath, overWrite);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+需要复制的文件在 COS 服务端的路径
+
+
+destPath
+
+String
+
+是
+
+无
+
+复制的目标的路径
+
+
+overWrite
+
+Int
+
+是
+
+无
+
+是否覆盖同名文件，0表示不覆盖，1表示覆盖
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+示例
+﻿
+
+    //拷贝文件，从源文件地址复制一份到新地址
+    $('#copyFile').on('click', function () {
+﻿
+
+        var myFile = '111/2.txt';//填您自己实际存在的文件
+﻿
+
+        //注意目标的路径，这里如果填333/2.txt 则表示文件复制到111/333/2.txt
+        //如果填/333/2.txt 则表示文件复制到bucket根目录下的333/2.txt
+        var newFile = '/333/2.txt';
+        var overWrite = 1;//0 表示不覆盖 1表示覆盖
+        cos.copyFile(successCallBack, errorCallBack, bucket, myFile, newFile, overWrite);
+    });
+﻿
+
+移动文件
+接口说明：通过此接口把文件移动（剪切）到另一个路径，如果是移动到相同路径的话，可以达到修改文件名的效果。
+方法原型
+cos.moveFile(successCallBack, errorCallBack, bucket, path, destPath, overWrite);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+需要移动的文件在 COS 服务端的路径
+
+
+destPath
+
+String
+
+是
+
+无
+
+移动的目标的路径
+
+
+overWrite
+
+Int
+
+是
+
+无
+
+是否覆盖同名文件，0表示不覆盖，1表示覆盖
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+示例
+﻿
+
+    //移动文件，把源文件移动到新地址，如果是同一个目录移动且文件名不同的话，相当于改了一个文件名
+    //如果是移动到新目录，相当于剪切当前的文件，粘贴到了新目录
+    $('#moveFile').on('click', function () {
+﻿
+
+        var myFile = '/111/2.txt';//填您自己实际存在的文件
+﻿
+
+        //注意目标的路径，这里如果填333/2.txt 则表示文件移动到111/333/2.txt
+        //如果填/333/2.txt 则表示文件移动到 bucket 根目录下的333/2.txt
+        //如果填/111/3.txt 则相当于把2.txt改名成3.txt
+        var newFile = '/333/2.txt';
+        var overWrite = 1;//0 表示不覆盖 1表示覆盖
+        cos.moveFile(successCallBack, errorCallBack, bucket, myFile, newFile, overWrite);
+    });
+﻿
+
+文件夹（目录）操作
+新增文件夹
+接口说明：通过此接口增加一个指定的文件夹。
+方法原型
+cos.createFolder(successCallBack, errorCallBack, bucket, path);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+需要操作的文件夹在 COS 服务端的路径
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+示例
+﻿
+
+    $('#createFolder').on('click', function () {
+        var newFolder = '/333/';//填您需要创建的文件夹
+        cos.createFolder(successCallBack, errorCallBack, bucket, newFolder);
+    });
+﻿
+
+﻿
+
+删除文件夹
+接口说明：通过此接口删除指定的文件夹。
+方法原型
+cos.deleteFolder(successCallBack, errorCallBack, bucket, path);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+需要操作的文件夹在 COS 服务端的路径
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+示例
+﻿
+
+    //删除文件夹
+    $('#deleteFolder').on('click', function () {
+        var newFolder = '/333/';//填您需要删除的文件夹
+        cos.deleteFolder(successCallBack, errorCallBack, bucket, newFolder);
+    });
+﻿
+
+获取文件夹属性
+接口说明：通过此接口获取指定的文件夹属性。
+方法原型
+cos.getFolderStat(successCallBack, errorCallBack, bucket, path);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+需要操作的文件夹在 COS 服务端的路径
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+
+
+data
+
+Object
+
+是
+
+文件夹属性信息对象
+
+
+data.biz_attr
+
+String
+
+是
+
+文件夹属性信息字符串
+示例
+﻿
+
+    //获取文件夹属性
+    $('#getFolderStat').on('click', function () {
+        cos.getFolderStat(successCallBack, errorCallBack, bucket, '/333/');
+    });
+﻿
+
+更新文件夹属性
+接口说明：通过此接口更新指定的文件夹属性。
+方法原型
+cos.updateFolder(successCallBack, errorCallBack, bucket, path, bizAttr);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+需要操作的文件夹在 COS 服务端的路径
+
+
+bizAttr
+
+String
+
+是
+
+无
+
+新的属性信息
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+示例
+﻿
+
+    //更新文件夹属性
+    $('#updateFolder').on('click', function () {
+        cos.updateFolder(successCallBack, errorCallBack, bucket, '/333/', 'new attr');
+    });
+﻿
+
+获取文件夹内列表
+接口说明：通过此接口获取指定的文件夹内的文件列表。
+方法原型
+cos.getFolderList(successCallBack, errorCallBack, bucket, path);
+参数说明
+参数名
+
+类型
+
+是否必填
+
+默认值
+
+参数描述
+
+
+successCallBack
+
+Function
+
+是
+
+无
+
+操作成功的回调
+
+
+errorCallBack
+
+Function
+
+是
+
+无
+
+操作失败的回调
+
+
+bucket
+
+String
+
+是
+
+无
+
+bucket 名称
+
+
+path
+
+String
+
+是
+
+无
+
+需要操作的文件夹在 COS 服务端的路径
+返回结果说明（json字符串）
+参数名
+
+类型
+
+是否必然返回
+
+参数描述
+
+
+code
+
+Int
+
+是
+
+API 错误码，成功时为0
+
+
+message
+
+String
+
+是
+
+错误信息
+
+
+data
+
+Array
+
+是
+
+返回数据
+
+
+data.listover
+
+Bool
+
+是
+
+是否有内容可以继续往前/往后翻页
+
+
+data.context
+
+String
+
+是
+
+透传字段，查看第一页，则传空字符串。若需要翻页，需要将前一页返回值中的 context 透传到参数中。order 用于指定翻页顺序。若 order 填0，则从当前页正序/往下翻页；若 order 填1，则从当前页倒序/往上翻页
+
+
+data.infos
+
+Array
+
+是
+
+文件、目录集合，可以为空
+
+
+data.infos.name
+
+String
+
+是
+
+文件或目录名
+
+
+data.infos.biz_attr
+
+String
+
+是
+
+目录或文件属性，业务端维护
+
+
+data.infos.ctime
+
+String
+
+是
+
+目录或文件的创建时间，unix 时间戳
+
+
+data.infos.mtime
+
+String
+
+是
+
+目录或文件的修改时间，unix 时间戳
+
+
+data.infos.filesize
+
+Int
+
+否(当类型为文件时返回)
+
+文件大小
+
+
+data.infos.filelen
+
+Int
+
+否(当类型为文件时返回)
+
+文件已传输大小（通过与 filesize 对比可知文件传输进度）
+
+
+data.infos.sha
+
+String
+
+否(当类型为文件时返回)
+
+文件 sha
+
+
+data.infos.access_url
+
+String
+
+否(当类型为文件时返回)
+
+生成的文件下载url
+
+
+data.infos.authority
+
+String
+
+否
+
+eInvalid，eWRPrivate，eWPrivateRPublic，文件可以与 bucket 拥有不同的权限类型，已经设置过权限的文件如果想要撤销，直接赋值为 eInvalid，则会采用 bucket 的权限
+示例
+    //获取指定文件夹内的列表,默认每次返回20条
+    $('#getFolderList').on('click', function () {
+        cos.getFolderList(successCallBack, errorCallBack, bucket, myFolder);
+    });
+﻿
+
+上一篇: Java SDK
+下一篇: PHP SDK
+文档内容是否对您有帮助？
+有帮助没帮助
+
+如果遇到产品相关问题，您可咨询 在线客服寻求帮助。
+
+对象存储 相关文档
+简介
+SDK 概览
+免费额度
+简单上传文件
+地域和访问域名
+请求签名
+操作列表
+FTP Server 工具
+HEAD Object
+Copyright © 2013-2026 Tencent Cloud. All Rights Reserved. 腾讯云 版权所有
+深圳市腾讯计算机系统有限公司ICP备案/许可证号：粤B2-20090059
+粤公网安备44030502008569号
+
+腾讯云计算（北京）有限责任公司京ICP证150476号 | 京ICP备11018762号
+中国站
+咨询

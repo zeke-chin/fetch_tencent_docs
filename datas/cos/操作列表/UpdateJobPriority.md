@@ -1,0 +1,134 @@
+<!-- source: https://cloud.tencent.com/document/product/436/38612 -->
+<!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T17:43:28+08:00 -->
+
+# UpdateJobPriority
+
+最近更新时间：2025-10-09 16:27:52
+
+
+## 功能描述
+
+UpdateJobPriority 用于更新任务优先级。您可以使用这一接口实现更新一项任务的优先级，数值越大，优先级越高，高优先级的 Job 会被优先执行。有关批量处理任务的详细介绍，可参见 [批量处理概述](https://cloud.tencent.com/document/product/436/38601)。
+
+## 授权说明
+
+授权策略中 action 设置为 `cos:UpdateJobPriority` 。查看所有 [action](https://cloud.tencent.com/document/product/598/69901)。
+
+## 请求
+
+#### **请求示例**
+
+POST /jobs/<JobId>/priority?priority=<Priority> HTTP/1.1
+
+Host: <UIN>.cos-control.<Region>.myqcloud.com
+
+x-cos-appid: <appid>
+
+Authorization: Auth String
+
+**说明：**
+
+Host: <UIN>.cos-control.<Region>.myqcloud.com，其中 <UIN> 为主账号 UIN 或已被授权的账号 UIN，例如100000000001，可参见 [账号信息](https://console.cloud.tencent.com/developer)；<Region> 为 COS 的可用地域，可参阅 [地域和访问域名](http://cloud.tencent.com/document/product/436/6224) 文档。
+
+Authorization: Auth String（详情请参见 [请求签名](https://cloud.tencent.com/document/product/436/7778) 文档）。
+
+### 请求参数
+
+#### **请求参数**
+
+调用 UpdateJobPriority 接口所需的参数。该参数格式如下：
+
+参数 描述 类型 是否必选
+JobId 您想要更新的批量处理任务的 JobId。可调用 [ListJobs](https://cloud.tencent.com/document/product/436/38611) 接口查看已有的 JobId。长度限制为1 - 64字节。String 是
+priority 更新后的任务优先级。此项参数大小限制为0 - 2147483647。Integer 是
+x-cos-appid 用户的 APPID，长度为1 - 64字节。String 是
+
+#### **请求头**
+
+此接口仅使用公共请求头部，详情请参见 [公共请求头部](https://cloud.tencent.com/document/product/436/7728) 文档。
+
+#### **请求体**
+
+该请求无请求体。
+
+## 响应
+
+#### **响应头**
+
+此接口仅返回公共响应头部，详情请参见 [公共响应头部](https://cloud.tencent.com/document/product/436/7729) 文档。
+
+#### **响应体**
+
+<UpdateJobPriorityResult>
+
+ <JobId>string</JobId>
+
+ <Priority>integer</Priority>
+
+</UpdateJobPriorityResult>
+
+具体的节点描述如下：
+
+节点名称（关键字）父节点 描述 类型
+UpdateJobPriorityResult 无 保存 UpdateJobPriority 结果的所有信息 Container
+
+**Container 节点 UpdateJobPriorityResult 的内容：**
+
+节点名 父节点 描述 类型
+JobId UpdateJobPriorityResult 任务 ID。您所更新的任务的 ID，长度限制为1 - 64字节。String
+Priority UpdateJobPriorityResult 任务的当前优先级。大小限制为0 - 2147483647。Integer
+
+#### 错误码
+
+该请求可能会发生的一些常见的特殊错误如下，其他错误请参见 [批量处理功能错误响应](https://cloud.tencent.com/document/product/436/38610)。
+
+错误码 描述 状态码 API
+InvalidRequest 未提供任务优先级 400 UpdateJobPriority
+NoSuchJob 指定任务不存在或已完成 404 UpdateJobStatus，UpdateJobPriority
+
+## 实际案例
+
+#### 请求
+
+POST /jobs/53dc6228-c50b-46f7-8ad7-65e7159f****/priority?priority=1 HTTP/1.1
+
+Host: 100000000001.cos-control.ap-chengdu.myqcloud.com
+
+Date: Thu, 19 Dec 2024 18:00:29 GMT
+
+x-cos-appid: 1250000000
+
+Content-Type: application/xml
+
+Content-Length: 1056
+
+Content-MD5: hHcgq5mu8s0Ywe4WTGiQ+uA==
+
+Authorization: q-sign-algorithm=sha1&q-ak=************************************&q-sign-time=1576778429;1576785629&q-key-time=1576778429;1576785629&q-header-list=content-length;content-md5;content-type;date;host;x-cos-appid&q-url-param-list=&q-signature=****************************************
+
+Connection: close
+
+#### **响应**
+
+HTTP/1.1 200 OK
+
+Content-Type: application/xml
+
+Content-Length: 89
+
+Connection: close
+
+Date: Thu, 19 Dec 2024 18:00:30 GMT
+
+Server: tencent-cos
+
+x-cos-request-id: NWRmYmJhYmRfMjViMjU4NjRfNmIzYV8xMDE2****
+
+<UpdateJobPriorityResult>
+
+ <JobId>53dc6228-c50b-46f7-8ad7-65e7159f****</JobId>
+
+ <Priority>1</Priority>
+
+</UpdateJobPriorityResult>

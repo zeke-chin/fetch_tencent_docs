@@ -1,0 +1,243 @@
+<!-- source: https://cloud.tencent.com/document/product/436/121106 -->
+<!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T17:51:29+08:00 -->
+
+# 查询 AI 内容识别队列
+
+最近更新时间：2026-03-27 16:08:05
+
+
+## 功能描述
+
+本接口用于查询AI 内容识别（异步）队列。
+
+## 授权说明
+
+通过子账号使用时，需要在 [授权策略](https://cloud.tencent.com/document/product/460/104297) 的 action 中添加 `ci:DescribeAiProcessQueues` 权限。数据万象支持的所有操作接口请参见 [CI action](https://cloud.tencent.com/document/product/598/98114)。
+
+## 服务开通
+
+使用该功能需提前 [绑定存储桶](https://cloud.tencent.com/document/product/460/46483)，开通数据万象服务。
+
+使用该功能需提前通过 [控制台](https://cloud.tencent.com/document/product/460/47193) 或 [接口](https://cloud.tencent.com/document/product/460/79593) 开通 AI 内容识别服务。
+
+**注意：**
+
+数据万象绑定后，如果您手动对存储桶进行数据万象的解绑操作，将无法继续使用该功能。
+
+## 使用限制
+
+使用该接口时，请先确认相关限制条件。详情请参见 [使用限制](https://cloud.tencent.com/document/product/460/36620#content-recognition)。
+
+## 请求
+
+#### 请求示例
+
+GET /ai_queue HTTP/1.1
+
+Host: <BucketName-APPID>.ci.<Region>.myqcloud.com
+
+Date: <GMT Date>
+
+Authorization: <Auth String>
+
+Content-Length: <length>
+
+Content-Type: application/xml
+
+**说明：**
+
+Authorization: Auth String，详情请参见 [请求签名](https://cloud.tencent.com/document/product/436/7778) 文档。
+
+#### 请求头
+
+此接口仅使用公共请求头部，详情请参见 [公共请求头部](https://cloud.tencent.com/document/product/460/42865) 文档。
+
+#### 请求体
+
+该请求的请求体为空。
+
+#### 请求参数
+
+参数名称（关键字）描述 类型 是否必选
+queueIds 队列 ID，以“,”符号分隔字符串 String 否
+state Active 表示队列内的作业会被调度执行
+
+Paused 表示队列暂停，作业不再会被调度执行，队列内的所有作业状态维持在暂停状态，已经执行中的任务不受影响 String 否
+pageNumber 第几页，默认值1 Int 否
+pageSize 每页个数，默认值10 Int 否
+
+## 响应
+
+#### 响应头
+
+此接口仅返回公共响应头部，详情请参见 [公共响应头部](https://cloud.tencent.com/document/product/460/42866) 文档。
+
+#### 响应体
+
+该响应体返回为 **application/xml** 数据，当指定 pageNumber 和 pageSize 时包含完整节点数据的内容展示如下：
+
+<Response>
+
+ <RequestId>NjJmNDczY2RfOTBmYTUwNjRfNTA4ZV85</RequestId>
+
+ <TotalCount>1</TotalCount>
+
+ <PageNumber>1</PageNumber>
+
+ <PageSize>10</PageSize>
+
+ <QueueList>
+
+ <QueueId>p4a17eeea29334bf499b7e20e2fbfd99d</QueueId>
+
+ <Name>My-Queue-ai</Name>
+
+ <State>Active</State>
+
+ <NotifyConfig>
+
+ <Url>http://callback.demo.com</Url>
+
+ <Event>TaskFinish,WorkflowFinish</Event>
+
+ <Type>Url</Type>
+
+ <State>On</State>
+
+ <ResultFormat>JSON</ResultFormat>
+
+ </NotifyConfig>
+
+ <MaxSize>10000</MaxSize>
+
+ <MaxConcurrent>10</MaxConcurrent>
+
+ <UpdateTime>2022-08-09T16:23:11+0800</UpdateTime>
+
+ <CreateTime>2022-08-09T16:23:11+0800</CreateTime>
+
+ <Category>AIProcess</Category>
+
+ </QueueList>
+
+</Response>
+
+具体的数据内容如下：
+
+节点名称（关键字）父节点 描述 类型
+Response 无 保存结果的容器 Container
+
+Container 节点 Response 的内容：
+
+节点名称（关键字）父节点 描述 类型
+RequestId Response 请求的唯一 ID String
+TotalCount Response 队列总数 Int
+PageNumber Response 当前页数，同请求中的 pageNumber Int
+PageSize Response 每页个数，同请求中的 pageSize Int
+QueueList Response 队列数组 Container 数组
+NonExistPIDs Response 不存在的队列 ID 列表 String 数组
+
+Container 节点 QueueList 的内容：
+
+节点名称（关键字）父节点 描述 类型
+QueueId Response.QueueList 队列 ID String
+Name Response.QueueList 队列名字 String
+State Response.QueueList 当前状态，Active 或者 Paused String
+NotifyConfig Response.QueueList 回调配置 Container
+MaxSize Response.QueueList 队列最大长度 Int
+MaxConcurrent Response.QueueList 当前队列最大并行执行的任务数 Int
+Category Response.QueueList 队列类型 String
+UpdateTime Response.QueueList 更新时间 String
+CreateTime Response.QueueList 创建时间 String
+BucketId Response.QueueList 队列所属存储桶的ID String
+
+Container 节点 NotifyConfig 的内容：
+
+节点名称（关键字）父节点 描述 类型
+Url Response.QueueList.NotifyConfig 回调地址 String
+State Response.QueueList.NotifyConfig 开关状态 String
+Type Response.QueueList.NotifyConfig 回调类型 String
+Event Response.QueueList.NotifyConfig 回调事件 String
+ResultFormat Response.QueueList.NotifyConfig 回调类型 String
+MqMode Response.QueueList.NotifyConfig TDMQ 使用模式 String
+MqRegion Response.QueueList.NotifyConfig TDMQ 所属园区 String
+MqName Response.QueueList.NotifyConfig TDMQ 主题名称 String
+
+#### 错误码
+
+该请求操作无特殊错误信息，常见的错误信息请参见 [错误码](https://cloud.tencent.com/document/product/460/42867) 文档。
+
+## 实际案例
+
+#### 请求
+
+GET /ai_queue?queueIds=p4a17eeea29334bf499b7e20e2fbfd99d,A,B HTTP/1.1
+
+Authorization: q-sign-algorithm=sha1&q-ak=************************************&q-sign-time=1497530202;1497610202&q-key-time=1497530202;1497610202&q-header-list=&q-url-param-list=&q-signature=****************************************
+
+Host: test-1234567890.ci.ap-chongqing.myqcloud.com
+
+Content-Length: 0
+
+Content-Type: application/xml
+
+#### 响应
+
+HTTP/1.1 200 OK
+
+Content-Type: application/xml
+
+Content-Length: 100
+
+Connection: keep-alive
+
+Date: Thu, 09 Aug 2022 16:23:12 GMT
+
+Server: tencent-ci
+
+x-ci-request-id: NjJmNDczY2RfOTBmYTUwNjRfNTA4ZV85
+
+<Response>
+
+ <RequestId>NjJmNDczY2RfOTBmYTUwNjRfNTA4ZV85</RequestId>
+
+ <QueueList>
+
+ <QueueId>p4a17eeea29334bf499b7e20e2fbfd99d</QueueId>
+
+ <Name>My-Queue-ai</Name>
+
+ <State>Active</State>
+
+ <NotifyConfig>
+
+ <Url>http://callback.demo.com</Url>
+
+ <Event>TaskFinish,WorkflowFinish</Event>
+
+ <Type>Url</Type>
+
+ <State>On</State>
+
+ <ResultFormat>JSON</ResultFormat>
+
+ </NotifyConfig>
+
+ <MaxSize>10000</MaxSize>
+
+ <MaxConcurrent>10</MaxConcurrent>
+
+ <UpdateTime>2022-08-09T16:23:11+0800</UpdateTime>
+
+ <CreateTime>2022-08-09T16:23:11+0800</CreateTime>
+
+ <Category>AIProcess</Category>
+
+ </QueueList>
+
+ <NonExistPIDs>A</NonExistPIDs>
+
+ <NonExistPIDs>B</NonExistPIDs>
+
+</Response>

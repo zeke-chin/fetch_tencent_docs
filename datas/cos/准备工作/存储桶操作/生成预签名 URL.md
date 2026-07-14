@@ -1,0 +1,424 @@
+<!-- source: https://cloud.tencent.com/document/product/436/36162 -->
+<!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T18:01:55+08:00 -->
+
+# 生成预签名 URL
+
+最近更新时间：2025-05-21 18:53:13
+
+
+## 简介
+
+小程序 SDK 提供获取对象 URL、获取请求预签名 URL 接口。
+
+关于使用预签名 URL 上传的说明请参见 [预签名授权上传](https://cloud.tencent.com/document/product/436/14114)， 使用预签名 URL 下载的说明请参见 [预签名授权下载](https://cloud.tencent.com/document/product/436/14116)。
+
+**说明：**
+
+建议用户使用临时密钥生成预签名，通过临时授权的方式进一步提高预签名上传、下载等请求的安全性。申请临时密钥时，请遵循 [最小权限指引原则](https://cloud.tencent.com/document/product/436/38618)，防止泄露目标存储桶或对象之外的资源。申请临时密钥的 action 需添加 `"name/cos:GetObject"` 权限。
+
+如果您一定要使用永久密钥来生成预签名，建议永久密钥的权限范围仅限于上传或下载操作，以规避风险。
+
+使用预签名URL上传时，最大支持上传 5GB 文件。
+
+## 注意事项
+
+2024年1月1日后创建的桶 [不支持使用默认域名在浏览器预览文件](https://cloud.tencent.com/document/product/436/96243)，建议您配置自定义域名，详情请参见 [存储桶切换自定义域名](https://cloud.tencent.com/document/product/436/102509)。
+
+生成预签名 URL 支持使用永久密钥或临时密钥。
+
+获取签名/预签名函数，默认签入 Header Host；您也可以选择不签入 Header Host，但可能导致请求失败或安全漏洞。
+
+## 前期准备
+
+开始使用前，确保您已经完成了 [白名单配置](https://cloud.tencent.com/document/product/436/31953#.E5.B0.8F.E7.A8.8B.E5.BA.8F.E5.9F.9F.E5.90.8D.E7.99.BD.E5.90.8D.E5.8D.95.E9.85.8D.E7.BD.AE) 并完成了 [SDK 初始化](https://cloud.tencent.com/document/product/436/31953)。
+
+## 获取请求预签名 URL（推荐）
+
+### 获取不带签名的对象的 URL
+
+var url = cos.getObjectUrl({
+
+ Bucket: 'examplebucket-1250000000', // 填入您自己的存储桶，必须字段
+
+ Region: 'COS_REGION', // 存储桶所在地域，例如 ap-beijing，必须字段
+
+ Key: '头像.jpg', // 存储在桶里的对象键（例如1.jpg，a/b/test.txt），支持中文，必须字段
+
+ Sign: false,
+
+});
+
+### 获取带签名的对象的 URL
+
+var url = cos.getObjectUrl({
+
+ Bucket: 'examplebucket-1250000000', // 填入您自己的存储桶，必须字段
+
+ Region: 'COS_REGION', // 存储桶所在地域，例如 ap-beijing，必须字段
+
+ Key: '头像.jpg', // 存储在桶里的对象键（例如1.jpg，a/b/test.txt），支持中文，必须字段
+
+});
+
+### 通过 callback 获取带签名 URL
+
+**说明：**
+
+如果签名过程是异步获取，例如通过 getAuthorization 获取临时密钥/签名做初始化时，需要通过 callback 获取带签名 Url。
+
+const cos = new COS({
+
+ SimpleUploadMethod: 'putObject', // 强烈建议，高级上传、批量上传内部对小文件做简单上传时使用putObject,sdk版本至少需要v1.3.0
+
+ getAuthorization: function (options, callback) {
+
+ // 初始化时不会调用，只有调用 cos 方法（例如 cos.putObject）时才会进入
+
+ // 异步获取临时密钥
+
+ wx.request({
+
+ url: 'https://example.com/server/sts.php',
+
+ data: {
+
+ bucket: options.Bucket,
+
+ region: options.Region,
+
+ },
+
+ dataType: 'json',
+
+ success: function (result) {
+
+ const data = result.data;
+
+ const credentials = data && data.credentials;
+
+ if (!data || !credentials) return console.error('credentials invalid');
+
+ callback({
+
+ TmpSecretId: credentials.tmpSecretId,
+
+ TmpSecretKey: credentials.tmpSecretKey,
+
+ // v1.2.0之前版本的 SDK 使用 XCosSecurityToken 而不是 SecurityToken
+
+ SecurityToken: credentials.sessionToken,
+
+ // 建议返回服务器时间作为签名的开始时间，避免用户浏览器本地时间偏差过大导致签名错误
+
+ StartTime: data.startTime, // 时间戳，单位秒，如：1580000000
+
+ ExpiredTime: data.expiredTime, // 时间戳，单位秒，如：1580000900
+
+ });
+
+ }
+
+ });
+
+ }
+
+});
+
+cos.getObjectUrl(
+
+ {
+
+ Bucket: 'examplebucket-1250000000', // 填入您自己的存储桶，必须字段
+
+ Region: 'COS_REGION', // 存储桶所在地域，例如 ap-beijing，必须字段
+
+ Key: '头像.jpg', // 存储在桶里的对象键（例如1.jpg，a/b/test.txt），支持中文，必须字段
+
+ Sign: false,
+
+ },
+
+ function (err, data) {
+
+ console.log(err || data.Url);
+
+ }
+
+);
+
+### 指定链接有效时间
+
+cos.getObjectUrl(
+
+ {
+
+ Bucket: 'examplebucket-1250000000', // 填入您自己的存储桶，必须字段
+
+ Region: 'COS_REGION', // 存储桶所在地域，例如 ap-beijing，必须字段
+
+ Key: '头像.jpg', // 存储在桶里的对象键（例如1.jpg，a/b/test.txt），支持中文，必须字段
+
+ Sign: true,
+
+ Expires: 3600, // 单位秒
+
+ },
+
+ function (err, data) {
+
+ console.log(err || data.Url);
+
+ }
+
+### 获取对象的 URL 并下载对象
+
+cos.getObjectUrl(
+
+ {
+
+ Bucket: 'examplebucket-1250000000', // 填入您自己的存储桶，必须字段
+
+ Region: 'COS_REGION', // 存储桶所在地域，例如 ap-beijing，必须字段
+
+ Key: '头像.jpg', // 存储在桶里的对象键（例如1.jpg，a/b/test.txt），支持中文，必须字段
+
+ Sign: true,
+
+ },
+
+ function (err, data) {
+
+ if (!err) return console.log(err);
+
+ wx.downloadFile({
+
+ url: data.Url, // 需要加 url 的域名作为下载白名单
+
+ success(res) {
+
+ console.log(res.statusCode, res.tempFilePath);
+
+ },
+
+ fail: function (err) {
+
+ console.log(err);
+
+ },
+
+ });
+
+ }
+
+);
+
+### 生成预签名 URL，并在签名中携带 Query 和 Header
+
+cos.getObjectUrl(
+
+ {
+
+ Bucket: 'examplebucket-1250000000', // 填入您自己的存储桶，必须字段
+
+ Region: 'COS_REGION', // 存储桶所在地域，例如 ap-beijing，必须字段
+
+ Key: '头像.jpg', // 存储在桶里的对象键（例如1.jpg，a/b/test.txt），支持中文，必须字段
+
+ Sign: true,
+
+ // 传入的请求参数需与实际请求相同，能够防止用户篡改此 HTTP 请求的参数
+
+ Query: {
+
+ 'imageMogr2/thumbnail/200x/': '',
+
+ },
+
+ // 传入的请求头部需包含在实际请求中，能够防止用户篡改签入此处的 HTTP 请求头部
+
+ Headers: {
+
+ host: 'xxx', // 指定 host 访问，非指定的 host 访问会报错403
+
+ },
+
+ },
+
+ function (err, data) {
+
+ console.log(err || data.Url);
+
+ }
+
+);
+
+### 获取预签名 Put Object 上传 URL
+
+cos.getObjectUrl(
+
+ {
+
+ Bucket: 'examplebucket-1250000000', // 填入您自己的存储桶，必须字段
+
+ Region: 'COS_REGION', // 存储桶所在地域，例如 ap-beijing，必须字段
+
+ Key: '头像.jpg', // 存储在桶里的对象键（例如1.jpg，a/b/test.txt），支持中文，必须字段
+
+ Method: 'PUT',
+
+ Sign: true,
+
+ },
+
+ function (err, data) {
+
+ if (err) return console.log(err);
+
+ console.log(data.Url);
+
+ // 获取到 Url 后，小程序可以这样发起上传
+
+ const upload = function(url, retryTimes) {
+
+ wx.request({
+
+ url: url, // 预签名 url
+
+ method: 'PUT', // PUT 和 getObjectUrl 填写的 Method 对应
+
+ header: {},
+
+ dataType: 'text',
+
+ // 可参考 demo 里的 putObject 方法获取 file https://github.com/tencentyun/cos-wx-sdk-v5/blob/master/demo/demo-sdk.js
+
+ data: file, // 小程序里选择的上传文件
+
+ success: function (response) {
+
+ console.log('上传成功', response);
+
+ },
+
+ fail: function (response) {
+
+ // 5xx 重试一次
+
+ if (Math.floor(response.statusCode / 100) === 5 && retryTimes === 0) {
+
+ retryTimes++;
+
+ upload(url, retryTimes);
+
+ } else {
+
+ console.log('上传出错', response);
+
+ }
+
+ },
+
+ });
+
+ }
+
+ upload(data.Url, 0);
+
+ }
+
+### 参数说明
+
+#### 入参说明
+
+参数名 参数描述 类型 是否必填
+Bucket 存储桶的名称，命名规则为 BucketName-APPID，此处填写的存储桶名称必须为此格式 String 是
+Region 存储桶所在地域，枚举值请参见 [地域和访问域名](https://cloud.tencent.com/document/product/436/6224)String 是
+Key 对象键（Object 的名称），对象在存储桶中的唯一标识，**如果请求操作是对文件的，则为文件名，且为必须参数**。如果操作是对于存储桶，则为空 String 是
+Sign 是否返回带有签名的 Url，默认为 true Boolean 否
+Protocol 可选填为 `http:` 或 `https:`，默认为 `http:`（带冒号）String 否
+Domain 存储桶访问域名，默认为 {BucketName-APPID}.cos.{Region}.myqcloud.com String 否
+Method 操作方法，例如 GET，POST，DELETE，HEAD 等 HTTP 方法，默认为 GET String 否
+Query 参与签名计算的 query 参数对象，{key: 'val'} 的格式 Object 否
+Headers 参与签名计算的 header 参数对象，{key: 'val'} 的格式 Object 否
+Expires 签名几秒后失效，默认为 900 秒
+
+**注意：**
+
+因临时密钥和签名均有有效期，若用临时密钥生成预签名 URL，其实际有效期是临时密钥有效期和签名有效期中较短的那个时长。Number 否
+
+#### 返回值说明
+
+返回值是一个字符串，有以下两种情况：
+
+1. 如果签名计算可以同步计算（例如，实例化传入了 SecretId 和 SecretKey），则默认返回带签名的 Url。
+
+2. 否则返回不带签名的 Url。
+
+#### 回调函数说明
+
+function(err, data) { ... }
+
+参数名 参数描述 类型
+err 请求发生错误时返回的对象，包括网络错误和业务错误。如果请求成功则为空，详情请参见 [错误码](https://cloud.tencent.com/document/product/436/7730) 文档 Object
+data 请求成功时返回的对象，如果请求发生错误，则为空 Object
+- Url 计算得到的 Url String
+
+## 生成签名后拼接预签名 URL
+
+COS XML API 的请求里，私有资源操作都需要鉴权凭证 Authorization，用于判断当前请求是否合法。
+
+鉴权凭证使用方式有两种：
+
+1. 放在 header 参数里使用，字段名：authorization。
+
+2. 放在 url 参数里使用，字段名：sign。
+
+COS.getAuthorization 方法用于计算鉴权凭证（Authorization），用以验证请求合法性的签名信息。
+
+**注意：**
+
+该方法推荐只在前端调试时使用，项目上线不推荐使用前端计算签名的方法，有暴露密钥的风险。
+
+### 使用案例
+
+获取对象下载的鉴权凭证：
+
+// SECRETID 和 SECRETKEY 请登录 https://console.cloud.tencent.com/cam/capi 进行查看和管理
+
+var Authorization = COS.getAuthorization({
+
+ SecretId: 'SECRETID', // 用户的 SecretId，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
+
+ SecretKey: 'SECRETKEY', // 用户的 SecretKey，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
+
+ Method: 'get',
+
+ Key: 'exampleobject',
+
+ Expires: 60,
+
+ Query: {},
+
+ Headers: {},
+
+});
+
+### 参数说明
+
+参数名 参数描述 类型 是否必填
+SecretId 用户的 SecretId String 是
+SecretKey 用户的 SecretKey String 是
+Method 操作方法，例如 GET，POST，DELETE，HEAD 等 HTTP 方法 String 是
+Key 对象键（Object 的名称），对象在存储桶中的唯一标识，**如果请求操作是对文件的，则为文件名，且为必须参数**。如果操作是对于存储桶，则为空 String 否
+Query 签名中要签入的请求参数，{key: 'val'} 的格式 Object 否
+Headers 签名中要签入的请求头部，{key: 'val'} 的格式 Object 否
+Expires 签名几秒后失效，默认为 900 秒
+
+**注意：**
+
+因临时密钥和签名均有有效期，若用临时密钥生成预签名 URL，其实际有效期是临时密钥有效期和签名有效期中较短的那个时长。Number 否
+
+#### 返回值说明
+
+返回值是计算得到的鉴权凭证字符串 authorization。

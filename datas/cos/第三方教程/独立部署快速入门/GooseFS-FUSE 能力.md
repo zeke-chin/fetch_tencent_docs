@@ -1,0 +1,196 @@
+<!-- source: https://cloud.tencent.com/document/product/436/113329 -->
+<!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T17:24:08+08:00 -->
+
+# GooseFS-FUSE 能力
+
+最近更新时间：2026-07-13 11:54:03
+
+
+## 局限性
+
+目前，GooseFS-FUSE 支持大多数基本文件系统的操作。然而，由于 GooseFS 某些内在的特性，您需要注意以下几点：
+
+不支持对文件进行随机写入和追加写入操作。
+
+文件只能顺序地写入一次，并且无法修改。这意味着如果要修改一个文件，您需要先删除该文件，或者 open 操作时，携带 O_TRUNC 标志符，将文件长度置为0。
+
+不支持读取挂载点中正在写入的文件。
+
+不支持对文件长度进行 truncate 操作。
+
+不支持 soft/hard link；GooseFS 没有 hard-link 和 soft-link 的概念，所以不支持与之相关的命令，例如 ln。此外关于 hard-link 的信息也不在 ll 的输出中显示。
+
+以对象存储作为底层存储时，Rename 操作非原子。
+
+只有当 GooseFS 的 GooseFS.security.group.mapping.class 选项设置为 ShellBasedUnixGroupsMapping 的值时，文件的用户与分组信息才与 Unix 系统的用户分组对应。否则 chown 与 chgrp 的操作不生效，而 ll 返回的用户与分组为启动 GooseFS-FUSE 进程的用户与分组信息。
+
+## 性能考虑
+
+由于 FUSE 和 JNR 的配合使用，与直接使用原生文件系统 API 相比，使用挂载文件系统的性能会相对较差。
+
+大多数性能问题的原因在于，每次进行 read 或 write 操作时，内存中都存在若干个副本，并且 FUSE 将写操作的最大粒度设置为128KB。其性能可以利用 kernel 3.15 引入的 FUSE 回写（write-backs）缓存策略从而得到大幅提高（但 libfuse 2.x 用户空间库目前尚不支持该特性）。
+
+## 安装要求
+
+JDK 1.8及以上
+
+Linux 系统：[libfuse](https://github.com/libfuse/libfuse) 2.9.3 及以上（可以使用 2.8.3 版本，但会提示一些警告）
+
+Mac 系统：[osxfuse](https://osxfuse.github.io/) 3.7.1 及以上
+
+## 可选配置
+
+GooseFS-FUSE 基于标准的 GooseFS-core-client-fs 进行操作。如果您希望它像使用其他应用的 client 一样，自定义该 GooseFS-core-client-fs 的行为。可通过编辑 $GOOSEFS_HOME/conf/goosefs-site.properties 配置文件来更改客户端选项。
+
+**注意：**
+
+所有的更改应该在 GooseFS-FUSE 启动之前完成。
+
+## GooseFS-FUSE 配置参数
+
+以下是 GooseFS-FUSE 相关的配置参数：
+
+**参数****默认值****描述**
+goosefs.fuse.cached.paths.max 500 用于定义 GooseFS-FUSE 缓存路径的上限；路径越多，缓存的命中率越高。
+goosefs.fuse.debug.enabled false 允许 FUSE 调试输出，该输出会被重定向到 `goosefs.logs.dir` 指定目录中的 `fuse.out` 日志文件。
+goosefs.fuse.fs.name goosefs-fuse FUSE 挂载文件系统使用的描述性名称。
+goosefs.fuse.jnifuse.enabled true 使用 JNI-Fuse 库以获得更好的性能。 如果禁用，将使用 JNR-Fuse。
+goosefs.fuse.shared.caching.reader.enabled false（实验性）使用共享 grpc 数据读取器，通过 GooseFS JNI Fuse 在多进程文件读取中获得更好的性能。块数据将缓存在客户端，因此 Fuse 进程需要更多内存。
+goosefs.fuse.logging.threshold 10s 当 IO 延迟超过这一阈值时，FUSE 会记录 API 调用情况。
+goosefs.fuse.maxwrite.bytes 131072 FUSE 写操作的粒度（bytes），注意目前 128KB 是 Linux 内核限制的上界。
+goosefs.fuse.user.group.translation.enabled false 是否在 FUSE API 中将 GooseFS 的用户与组转化为对应的 Unix 用户与组。当设为 false 时，所有 FUSE 文件的用户与组将会显示为挂载 goosefs-fuse 线程的用户与组。
+
+## 用法
+
+### 挂载 GooseFS-FUSE
+
+完成配置以及启动 GooseFS 集群后，在需要挂载 GooseFS 的节点上启动 Shell，并进入 $GOOSEFS_HOME 目录执行以下命令：
+
+$ integration/fuse/bin/goosefs-fuse mount mount_point [GooseFS_path]
+
+该命令会启动一个后台 Java 进程，用于将对应的 GooseFS 路径挂载到 `<mount_point>` 指定的路径。例如以下命令，将 GooseFS 路径 /people 挂载到本地文件系统的 /mnt/people 目录下。
+
+$ integration/fuse/bin/goosefs-fuse mount /mnt/people /people
+
+Starting goosefs-fuse on local host.
+
+goosefs-fuse mounted at /mnt/people. See /lib/GooseFS/logs/fuse.log for logs
+
+当 GooseFS_path 没有给定时，GooseFS-FUSE 会默认挂载到 GooseFS 根目录下(/)。您可以多次调用该命令，将 GooseFS 挂载到不同的本地目录下。所有的 GooseFS-FUSE 会共享 $GOOSEFS_HOME\logs\fuse.log 日志文件。该日志文件对于错误排查很有帮助。
+
+**注意：**
+
+`<mount_point>`必须是本地文件系统中的一个空文件夹，并且启动 GooseFS-FUSE 进程的用户拥有该挂载点及对其的读写权限。
+
+### 卸载 GooseFS-FUSE
+
+卸载 GooseFS-FUSE 时，需在该节点上启动 Shell，并进入 $GOOSEFS_HOME 目录执行以下命令：
+
+$ integration/fuse/bin/goosefs-fuse umount mount_point
+
+该命令将终止 goosefs-fuse java 后台进程，并卸载该文件系统。例如：
+
+$ integration/fuse/bin/goosefs-fuse umount /mnt/people
+
+Unmount fuse at /mnt/people (PID: 97626).
+
+默认情况下，如果有任何读写操作未完成，unmount 操作会等待最多120s。如果120s后读写操作仍未完成，那么 Fuse 进程会被强行结束，这会导致正在读写的文件失败，您可以添加 -s 参数来避免 Fuse 进程被强行结束。例如：
+
+$ ${GOOSEFS_HOME}/integration/fuse/bin/goosefs-fuse unmount -s /mnt/people
+
+### 检查 GooseFS-FUSE 是否在运行
+
+罗列所有的挂载点，需在该节点上启动 Shell，并进入 $GOOSEFS_HOME 目录执行以下命令：
+
+$ integration/fuse/bin/goosefs-fuse stat
+
+该命令会输出包括 pid、mount_point、GooseFS_path 在内的信息。
+
+例如输出可以是以下格式：
+
+$ pid mount_point GooseFS_path
+
+80846 /mnt/people /people
+
+80847 /mnt/sales /sales
+
+### Goosefs-FUSE 目录结构
+
+![Image 2](https://qcloudimg.tencent-cloud.cn/image/document/4eaff0a4a96066d1a6428943f13d806c.png)
+
+![Image 3](https://qcloudimg.tencent-cloud.cn/image/document/4eaff0a4a96066d1a6428943f13d806c.png)
+
+conf 目录下：
+
+masters：master 服务器的 IP 配置文件
+
+workers：worker 服务器的 IP 配置文件
+
+goosefs-site.properties：goosefs 配置文件
+
+libexec：goosefs-fuse 运行依赖的 lib 库文件
+
+goosefs-fuse-1.4.2：goosefs-fuse 后台运行的 jar 包
+
+log：日志目录
+
+## 常见问题
+
+#### 缺少 libfuse 库文件
+
+在您执行 GooseFS-FUSE 挂载之前，需要安装 libfuse。
+
+![Image 4](https://qcloudimg.tencent-cloud.cn/image/document/ec81a25b967fbf80f405aed0b761438d.png)
+
+![Image 5](https://qcloudimg.tencent-cloud.cn/image/document/ec81a25b967fbf80f405aed0b761438d.png)
+
+**方式一** 安装命令：
+
+yum install fuse-devel
+
+查看是否安装成功：
+
+find / -name libfuse.so*
+
+**方式二** 更新旧版本 libfuse.so.2.9.2，安装步骤如下：
+
+**说明：**
+
+在 CentOS 7安装 libfuse，CentOS 7默认安装的是 libfuse.so.2.9.2。
+
+首先，下载 [libfuse 源码](https://github.com/libfuse/libfuse/releases/tag/fuse-2.9.7)，并编译生成 libfuse.so.2.9.7。
+
+tar -zxvf fuse-2.9.7.tar.gz
+
+cd fuse-2.9.7/ && ./configure && make && make install
+
+echo -e '\n/usr/local/lib' >> /etc/ld.so.conf
+
+ldconfig
+
+其次，下载、编译及生成 libfuse.so.2.9.7 后，按照以下步骤进行安装替换。
+
+1. 执行以下命令，查找旧版本 libfuse.so.2.9.2 库链接。
+
+find / -name libfuse.so*
+
+2. 执行以下命令，将 libfuse.so.2.9.7 拷贝至旧版本库 libfuse.so.2.9.2 所在位置。
+
+cp /usr/local/lib/libfuse.so.2.9.7 /usr/lib64/
+
+3. 执行以下命令， 删除旧版本 libfuse.so 库的所有链接。
+
+rm -f /usr/lib64/libfuse.so
+
+rm -f /usr/lib64/libfuse.so.2
+
+4. 执行以下命令，建立与被删除旧版本链接类似的 libfuse.so.2.9.7 库链接。
+
+ln -s /usr/lib64/libfuse.so.2.9.7 /usr/lib64/libfuse.so
+
+ln -s /usr/lib64/libfuse.so.2.9.7 /usr/lib64/libfuse.so.2
+
+#### Vim 编辑挂载点中的文件报错 Write error in swap file？
+
+您可以通过更改 Vim 的配置，使用 VIM 7.4 及之前的版本，对 GooseFS-Fuse 挂载点中的文件进行编辑。VIM 的 swap 文件用于暂存用户对文件的修改内容，方便 VIM 在机器宕掉重启后，可以根据 swap 文件，对未保存的修改内容进行恢复。上面的报错是由于 VIM 对 swap 文件，涉及随机写入操作，而 GooseFS 不支持对文件的随机写入。解决方法：您可以通过在 VIM 编辑窗口中，执行如下的 VIM 命令关闭 swap 文件生成，`:set noswapfile`，或者在配置文件 ~/.vimrc 中添加配置行 `set noswapfile`。

@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 from tqdm import tqdm
 
 from fetchers import Fetcher, create_fetcher
+from gen_index import write_index
 
 # East Asia / China Standard Time (UTC+8)
 TZ_CN = ZoneInfo("Asia/Shanghai")
@@ -101,6 +102,9 @@ def fetch_all(
     concurrency: int = 4,
     skip_existing: bool = False,
     tavily_depth: str = "advanced",
+    write_agents_index: bool = True,
+    index_style: str = "grouped",
+    claude_link: bool = False,
 ) -> None:
     if not urls_path.is_file():
         print(f"Error: file not found: {urls_path}", file=sys.stderr)
@@ -136,49 +140,55 @@ def fetch_all(
         f"delay: {delay}s  tavily_depth: {tavily_depth}\n"
     )
 
-    if not jobs:
-        print("Nothing to fetch.")
-        return
-
-    write_lock = Lock()
     ok, failed = 0, 0
     failures: list[JobResult] = []
-    workers = min(concurrency, len(jobs))
 
-    with create_fetcher(
-        backend,
-        concurrency=concurrency,
-        tavily_depth=tavily_depth,
-    ) as fetcher:
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = {
-                executor.submit(
-                    _fetch_one,
-                    fetcher,
-                    job,
-                    delay=delay,
-                    write_lock=write_lock,
-                ): job
-                for job in jobs
-            }
-            with tqdm(
-                total=len(jobs),
-                desc=f"Fetching[{fetcher.name}]",
-                unit="doc",
-                dynamic_ncols=True,
-            ) as pbar:
-                for future in as_completed(futures):
-                    result = future.result()
-                    if result.ok:
-                        ok += 1
-                        pbar.set_postfix_str(f"ok {result.rel}", refresh=False)
-                    else:
-                        failed += 1
-                        failures.append(result)
-                        pbar.set_postfix_str(f"fail {result.rel}", refresh=False)
-                    pbar.update(1)
+    if not jobs:
+        print("Nothing to fetch.")
+    else:
+        write_lock = Lock()
+        workers = min(concurrency, len(jobs))
+
+        with create_fetcher(
+            backend,
+            concurrency=concurrency,
+            tavily_depth=tavily_depth,
+        ) as fetcher:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = {
+                    executor.submit(
+                        _fetch_one,
+                        fetcher,
+                        job,
+                        delay=delay,
+                        write_lock=write_lock,
+                    ): job
+                    for job in jobs
+                }
+                with tqdm(
+                    total=len(jobs),
+                    desc=f"Fetching[{fetcher.name}]",
+                    unit="doc",
+                    dynamic_ncols=True,
+                ) as pbar:
+                    for future in as_completed(futures):
+                        result = future.result()
+                        if result.ok:
+                            ok += 1
+                            pbar.set_postfix_str(f"ok {result.rel}", refresh=False)
+                        else:
+                            failed += 1
+                            failures.append(result)
+                            pbar.set_postfix_str(f"fail {result.rel}", refresh=False)
+                        pbar.update(1)
 
     print(f"\nDone. ok={ok} skipped={skipped} failed={failed} total={total}")
+
+    # Always refresh AGENTS.md after a run (covers skip-existing / partial failures).
+    if write_agents_index:
+        print()
+        write_index(output_dir, style=index_style, claude=claude_link)
+
     if failures:
         print("\nFailed:", file=sys.stderr)
         for item in failures:
@@ -229,6 +239,22 @@ def main() -> None:
         action="store_true",
         help="Skip titles whose .md file already exists and is non-empty",
     )
+    parser.add_argument(
+        "--no-index",
+        action="store_true",
+        help="Do not write AGENTS.md after fetch (default: write)",
+    )
+    parser.add_argument(
+        "--index-style",
+        choices=("grouped", "paths", "tree"),
+        default="grouped",
+        help="AGENTS.md layout style (default: grouped)",
+    )
+    parser.add_argument(
+        "--claude",
+        action="store_true",
+        help="Also create relative symlink CLAUDE.md -> AGENTS.md (default: off)",
+    )
     args = parser.parse_args()
     fetch_all(
         args.urls_json.resolve(),
@@ -237,6 +263,9 @@ def main() -> None:
         concurrency=args.concurrency,
         skip_existing=args.skip_existing,
         tavily_depth=args.depth,
+        write_agents_index=not args.no_index,
+        index_style=args.index_style,
+        claude_link=args.claude,
     )
 
 

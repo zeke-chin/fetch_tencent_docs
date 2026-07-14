@@ -1,0 +1,102 @@
+<!-- source: https://cloud.tencent.com/document/product/436/123441 -->
+<!-- fetcher: jina -->
+<!-- fetched_at: 2026-07-13T17:13:34+08:00 -->
+
+# 对象标签 - object-tagging
+
+最近更新时间：2025-09-15 16:11:22
+
+
+## 命令格式
+
+./coscli object-tagging --method [method] cos://<bucket-name>/object [tag_key]#[tag_value]
+
+object-tagging 命令包含以下参数：
+
+参数格式 参数用途 示例
+cos://<bucket-name>指定需要访问的存储桶。支持使用 [配置参数](https://cloud.tencent.com/document/product/436/63144#.E9.85.8D.E7.BD.AE.E5.8F.82.E6.95.B0) 中的桶别名，或桶名称进行访问。如使用桶名称访问，需要额外携带 `endpoint` flag 使用桶别名访问：cos://example-alias
+
+使用桶名称访问：cos://examplebucket-1250000000
+
+object-tagging 命令包含以下可选 flag：
+
+flag 简写 flag 全称 flag 用途
+-h--help 查看该命令的具体用法
+无--method 指定需要进行的操作，包括 put（设置标签）、get（查询标签）、delete（删除标签）、add（添加标签）
+无--version-id 操作对象的特定版本
+
+**说明：**
+
+关于此命令的其他通用选项（例如切换存储桶、切换用户账号等），请参见 [通用选项](https://cloud.tencent.com/document/product/436/71763) 文档。
+
+## 修改对象标签
+
+对象标签用一组键值对（Key-Value）来表示，只有对象所有者及拥有 PutObjectTagging 权限的用户才可以添加或修改对象标签，否则会返回错误码 403 AccessDenied。
+
+### 命令格式
+
+./coscli object-tagging --method put cos://bucketAlias/object key1#value1 key2#value2
+
+其中，`key#value`表示标签键值对 Key-Value，key 和 value 之间以`#`分隔。若对象未设置标签，此命令将为对象添加指定的标签；若对象已设置标签，此命令将覆盖原有的标签。
+
+### 操作示例
+
+为桶别名为 example-alias下的 object 对象配置两组标签，其中一组标签的 key 为1，value 为111，一组标签的 key 为2，value 为222。命令如下：
+
+./coscli object-tagging --method put cos://example-alias/object 1#111 2#222
+
+## 查询对象标签
+
+### 命令格式
+
+./coscli object-tagging --method get cos://bucketAlias/object
+
+### 操作示例
+
+./coscli object-tagging --method get cos://example-alias/object
+
+以下输出结果表明桶别名为 example-alias下的 object 对象配置了两组标签，其中一组标签的 key 为1，value 为111，一组标签的 key 为2，value 为222。
+
+ KEY | VALUE
+
+------+--------
+
+ 1 | 111
+
+ 2 | 222
+
+## 删除对象指定标签
+
+### 命令格式
+
+./coscli object-tagging --method delete cos://bucketAlias/object key1#value1
+
+### 操作示例
+
+./coscli object-tagging --method delete cos://example-alias/object 1#111
+
+## 删除对象所有标签
+
+### 命令格式
+
+./coscli object-tagging --method delete cos://bucketAlias/object
+
+### 操作示例
+
+./coscli object-tagging --method delete cos://example-alias/object
+
+## 添加对象标签
+
+对象标签用一组键值对（Key-Value）来表示，只有对象所有者及拥有 PutObjectTagging 权限的用户才可以添加或修改对象标签，否则会返回错误码 403 AccessDenied。
+
+### 命令格式
+
+./coscli object-tagging --method add cos://bucketAlias/object key3#value3
+
+其中，`key#value`表示标签键值对 Key-Value，key 和 value 之间以`#`分隔。
+
+### 操作示例
+
+为桶别名为 example-alias下的 object 对象添加一组标签，标签的 key 为1，value 为111。命令如下：
+
+./coscli object-tagging --method add cos://example-alias/object 1#111

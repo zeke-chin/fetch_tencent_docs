@@ -69,7 +69,7 @@ JSON 对象，key 为文档标题路径，value 为 URL：
 ## 用法
 
 ```bash
-# 默认 jina + 4 并发 + tqdm 进度条
+# 默认 jina + 4 并发 + tqdm；抓完自动写 AGENTS.md
 uv run main.py datas/sandbox/urls.json
 
 # 指定后端
@@ -87,6 +87,11 @@ uv run main.py datas/sandbox/urls.json -b tavily --depth basic
 
 # 每个 worker 请求后额外 sleep（限速）
 uv run main.py datas/sandbox/urls.json --delay 0.5
+
+# 索引相关（默认会生成 AGENTS.md）
+uv run main.py datas/sandbox/urls.json --index-style tree
+uv run main.py datas/sandbox/urls.json --claude          # 额外 CLAUDE.md -> AGENTS.md
+uv run main.py datas/sandbox/urls.json --no-index        # 不写 AGENTS.md
 ```
 
 完整路径示例：
@@ -115,6 +120,7 @@ uv run main.py /Users/zeke/workspace/wm_work/fetch_tencent_docs/datas/sandbox/ur
 fetch_tencent_docs/
 ├── main.py                 # CLI / 并发 / 落盘
 ├── clean_md.py             # 清洗导航/页脚噪音
+├── gen_index.py            # 生成 AGENTS.md（Agent 目录索引）
 ├── scripts/
 │   └── export_tencent_docs_urls.js  # 浏览器 Console：导出 urls.json
 ├── fetchers/
@@ -155,6 +161,45 @@ uv run clean_md.py datas/sandbox --keep-toc
 4. **终点**：`上一篇/下一篇`、相关文档列表、Copyright、AI 助手 chrome
 
 实测 sandbox 全量约 **~84%** 体积是可删噪音。
+
+## 生成 Agent 索引（gen_index.py）
+
+给 Agent 用的文件索引，默认写到 `datas/<product>/AGENTS.md`（符合常见 Agent 约定）。
+
+```bash
+# 推荐：嵌套分组，不重复父路径前缀（默认）
+uv run gen_index.py datas/sandbox
+
+# 额外创建相对软链 CLAUDE.md -> AGENTS.md（默认不创建）
+uv run gen_index.py datas/sandbox --claude
+
+# 纯路径列表（grep 友好）
+uv run gen_index.py datas/sandbox --style paths
+
+# ASCII 树（人类好看，符号更费 token）
+uv run gen_index.py datas/sandbox --style tree
+```
+
+| style | 特点 | 适用 |
+| --- | --- | --- |
+| `grouped`（默认） | `## 顶层` + 嵌套列表，目录名只写一次（如 `- Go SDK 常见问题/ (99)`） | Agent 导航 |
+| `paths` | 一行一个完整相对路径 | 极简 / 脚本 |
+| `tree` | `├──` 树形 | 给人看 |
+
+`grouped` 路径还原规则：
+
+- `## 准备工作` + `- 简介.md` → `准备工作/简介.md`
+- `## 准备工作` + `- Go SDK 常见问题/ (99)` + `  - 上传对象.md` → `准备工作/Go SDK 常见问题/上传对象.md`
+- 更深层：`- 人像抠图/ (3)` 下的 `  - 创建任务.md` → `.../人像抠图/创建任务.md`（忽略 `(n)` 计数）
+
+建议流水线：
+
+```bash
+# main 默认已生成 AGENTS.md；clean 后可再刷一次索引
+uv run main.py datas/sandbox/urls.json -b jina -c 2
+uv run clean_md.py datas/sandbox
+uv run gen_index.py datas/sandbox   # 可选：清洗后刷新 AGENTS.md
+```
 
 ## 说明
 

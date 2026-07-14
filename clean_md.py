@@ -251,7 +251,9 @@ def process_file(path: Path, *, dry_run: bool, keep_toc: bool) -> tuple[int, int
 def iter_md_files(target: Path) -> list[Path]:
     if target.is_file():
         return [target]
-    return sorted(target.rglob("*.md"))
+    # Skip generated / meta markdown (not fetched docs)
+    skip = {"AGENTS.md", "CLAUDE.md", "INDEX.md", "TREE.md", "README.md"}
+    return sorted(p for p in target.rglob("*.md") if p.name not in skip)
 
 
 def main() -> None:
